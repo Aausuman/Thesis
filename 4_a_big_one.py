@@ -2,7 +2,7 @@ from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext
 from pyspark.sql.functions import col, when
 
-conf = SparkConf().setMaster("local").setAppName("MapReduce")
+conf = SparkConf().setMaster("local[*]").setAppName("MapReduce")
 sc = SparkContext(conf = conf)
 sqc = SQLContext(sc)
 
@@ -27,10 +27,10 @@ bus_lines_df = sqc.sql("select distinct LineID from records")
 for lines in bus_lines_df.rdd.collect():
     print(lines["LineID"])
 
-# calculating how many bus movements take place for each line in this given day
+# calculating how many records exist for each lineID in this given day
 bus_lines_rdd = records_df_without_empty.rdd.map(lambda x: x["LineID"])
 bus_lines_rdd_count = bus_lines_rdd.map(lambda x: (x, 1))
 bus_lines_rdd_totals = bus_lines_rdd_count.reduceByKey(lambda x, y: x + y)
 
 for line in bus_lines_rdd_totals.collect():
-    print("For lineID = " + str(line[0]) + " , number of bus movements on this day are = " + str(line[1]))
+    print("For lineID = " + str(line[0]) + " , number of records that exist on this day are = " + str(line[1]))
