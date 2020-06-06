@@ -34,5 +34,3 @@ bus_lines_rdd_totals = bus_lines_rdd_count.reduceByKey(lambda x, y: x + y)
 
 for line in bus_lines_rdd_totals.collect():
     print("For lineID = " + str(line[0]) + " , number of bus movements on this day are = " + str(line[1]))
-
-# Analysing which line has the most delay
