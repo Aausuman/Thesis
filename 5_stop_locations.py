@@ -15,12 +15,11 @@ sqc = SQLContext(sc)
 # sqc = SQLContext(sc)
 
 # Importing Dataset (Local machine)
-raw_records_Jan1 = sc.textFile("/Users/aausuman/Downloads/Thesis Dataset/siri.20130101.csv")
-raw_records_Jan2 = sc.textFile("/Users/aausuman/Downloads/Thesis Dataset/siri.20130102.csv")
-raw_records = raw_records_Jan1.union(raw_records_Jan2)
+raw_records = sc.textFile("/Users/aausuman/Downloads/Thesis Dataset/siri.20130101.csv")
 
 # Importing Dataset (Databricks cluster)
 # raw_records = sc.textFile("/FileStore/tables/siri_20130101-aa346.csv")
+# need to process all files on cluster as local machine won't be handle that much
 
 # Function to extract fields from our comma separated data files
 def pre_process(record):
@@ -61,48 +60,51 @@ grouped_by_lineID = filtered_data_rdd.groupByKey().mapValues(list)
 results_1 = grouped_by_lineID.collect()
 
 for result_1 in results_1:
-    # Creating RDD for each LineID inside this for loop
-    lineID_rdd = sc.parallelize(result_1[1])
+    # Just doing for 1 line, as local machine won't be able to handle
+    # Will do for all lines on the DataBricks cluster
+    if result_1[0] == '747':
+        # Creating RDD for each LineID inside this for loop
+        lineID_rdd = sc.parallelize(result_1[1])
 
-    # Remapping this RDD by StopID as key
-    lineID_rdd_2 = lineID_rdd.map(lambda x: (str(x[8]),\
-                                                    (str(x[0]), str(x[8]),\
-                                                     str(x[1]),\
-                                                     str(x[2]),\
-                                                     int(str(x[3])),\
-                                                     int(str(x[4])), int(str(x[5])), str(x[6]),\
-                                                     str(x[7]), int(str(x[9])))))
+        # Remapping this RDD by StopID as key
+        lineID_rdd_2 = lineID_rdd.map(lambda x: (str(x[8]),\
+                                                        (str(x[0]), str(x[8]),\
+                                                         str(x[1]),\
+                                                         str(x[2]),\
+                                                         int(str(x[3])),\
+                                                         int(str(x[4])), int(str(x[5])), str(x[6]),\
+                                                         str(x[7]), int(str(x[9])))))
 
-    # Grouping those records on StopID
-    grouped_by_stopID = lineID_rdd_2.groupByKey().mapValues(list)
-    results_2 = grouped_by_stopID.collect()
+        # Grouping those records on StopID
+        grouped_by_stopID = lineID_rdd_2.groupByKey().mapValues(list)
+        results_2 = grouped_by_stopID.collect()
 
-    for result_2 in results_2:
-        # Creating RDD for each StopID within the original loop's LineID inside this for loop
-        stopID_rdd = sc.parallelize(result_2[1])
+        for result_2 in results_2:
+            # Creating RDD for each StopID within the original loop's LineID inside this for loop
+            stopID_rdd = sc.parallelize(result_2[1])
 
-        # These lines below, will print records for each stopID in turn for each LineID
-        # if result_1[0] == '747':
-        #     for x in result_2[1]:
-        #         print(x)
+            # These lines below, will print records for each stopID in turn for each LineID
+            # if result_1[0] == '747':
+            #     for x in result_2[1]:
+            #         print(x)
 
-        # We can gather a stop's exact coordinates, when a record shows that a bus is stopped at that location
-        # And that bus location coordinates will coincide with the Stop's GPS coordinates
-        # Sometimes there may be stops on a line where no bus of that line stops,
-        # which means that stop may also lie on another line, so we need no worry about it at this time)
+            # We can gather a stop's exact coordinates, when a record shows that a bus is stopped at that location
+            # And that bus location coordinates will coincide with the Stop's GPS coordinates
+            # Sometimes there may be stops on a line where no bus of that line stops,
+            # which means that stop may also lie on another line, so we need no worry about it at this time)
 
-        # Converting the stopID rdd into a dataframe
-        stopID_df = stopID_rdd.toDF(schema=["LineID", "StopID", "Time", "JourneyPatternID", "VehicleID",\
-                                            "VehicleJourneyID",\
-                                            "Delay", "Lon", "Lat",\
-                                            "AtStop"])
+            # Converting the stopID rdd into a dataframe
+            stopID_df = stopID_rdd.toDF(schema=["LineID", "StopID", "Time", "JourneyPatternID", "VehicleID",\
+                                                "VehicleJourneyID",\
+                                                "Delay", "Lon", "Lat",\
+                                                "AtStop"])
 
-        stopID_df.registerTempTable("records")
-        stop_coordinates_df = sqc.sql("select LineID, StopID, Lon, Lat \
-                                            from records where AtStop = 1 limit 1")
+            stopID_df.registerTempTable("records")
+            stop_coordinates_df = sqc.sql("select LineID, StopID, Lon, Lat \
+                                                from records where AtStop = 1 limit 1")
 
-        # Appending these obtained stopIDs into our repository data-frame of stopIDs
-        all_coordinates_df = all_coordinates_df.union(stop_coordinates_df)
+            # Appending these obtained stopIDs into our repository data-frame of stopIDs
+            all_coordinates_df = all_coordinates_df.union(stop_coordinates_df)
 
 # Saving the stopID coordinates in a single csv file
 all_coordinates_df.coalesce(1).write.csv('/Users/aausuman/Documents/Thesis/StopID_Coordinates')
