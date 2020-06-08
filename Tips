@@ -1,3 +1,5 @@
-To remove a folder (with files) from DataBricks FileStore use the following command
+1. To remove a folder (with files) from FileStore use the following command in DataBricks notebook
+        dbutils.fs.rm("/FileStore/Stops_Jan1.csv", True)
 
-dbutils.fs.rm("/FileStore/Stops_Jan1.csv", True)
+2. To download a file from DataBricks FileStore/tables open the following url in browser
+        https://community.cloud.databricks.com/files/tables/my-file.txt?o=8736540974339418
