@@ -1,0 +1,3 @@
+To remove a folder (with files) from DataBricks FileStore use the following command
+
+dbutils.fs.rm("/FileStore/Stops_Jan1.csv", True)
