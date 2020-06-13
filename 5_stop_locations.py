@@ -38,7 +38,7 @@ records_df = records_rdd.toDF(schema=["Timestamp", "LineID", "Direction", "Journ
                                       "BlockID", "VehicleID", "StopID", "AtStop"])
 records_df_without_empty = records_df.withColumn("LineID", blank_as_null("LineID"))
 
-# Creating an empty data-frame for storing coordinates of all the stops within a lineID
+# Creating an empty data-frame for storing coordinates of all the stops within all lineID
 relevant_fields = [StructField("LineID",StringType(), True),StructField("StopID", StringType(), True),\
             StructField("Lon", StringType(), True), StructField("Lat", StringType(), True)]
 schema = StructType(relevant_fields)
