@@ -45,15 +45,15 @@ schema = StructType(relevant_fields)
 all_coordinates_df = sqc.createDataFrame(sc.emptyRDD(), schema)
 
 # Remapping records into an RDD by LineID as Key
-filtered_data_rdd = records_df_without_empty.rdd.map(lambda x: (str(x["LineID"]),\
-                                                                (str(x["LineID"]),\
-                                                                 time.ctime(int(str(x["Timestamp"]))/1000000),\
-                                                                 str(x["JourneyPatternID"]),\
-                                                                 int(str(x["VehicleID"])),\
-                                                                 int(str(x["VehicleJourneyID"])),\
-                                                                 int(str(x["Delay"])),\
-                                                                 str(x["Lon"]), str(x["Lat"]), str(x["StopID"]),\
-                                                                 int(str(x["AtStop"])))))
+filtered_data_rdd = records_df_without_empty.rdd.map(lambda x: (str(x["LineID"]), (str(x["LineID"]),\
+                                                                        time.ctime(int(str(x["Timestamp"]))/1000000),\
+                                                                        str(x["JourneyPatternID"]),\
+                                                                        int(str(x["VehicleID"])),\
+                                                                        int(str(x["VehicleJourneyID"])),\
+                                                                        int(str(x["Delay"])),\
+                                                                        str(x["Lon"]), str(x["Lat"]),\
+                                                                        str(x["StopID"]),\
+                                                                        int(str(x["AtStop"])))))
 
 # Grouping those records on LineID
 grouped_by_lineID = filtered_data_rdd.groupByKey().mapValues(list)
