@@ -50,10 +50,11 @@ records_df = records_df.dropDuplicates()
 
 # Remapping rdd as a PairRDD with LineID as key
 records_keyLineID_rdd = records_df.rdd.map(lambda x: (int(str(x["LineID"])), [(int(str(x["LineID"])), \
-                                                                               int(str(x["VehicleJourneyID"])), \
-                                                                               int(str(x["StopID"])), \
                                                                                int(float(str(x["Timestamp"]))), \
+                                                                               str(x["JourneyPatternID"]), \
+                                                                               int(str(x["VehicleJourneyID"])), \
                                                                                int(str(x["VehicleID"])), \
+                                                                               int(str(x["StopID"])), \
                                                                                str(x["Lat"]), \
                                                                                str(x["Lon"]), \
                                                                                int(str(x["AtStop"])), \
@@ -67,36 +68,34 @@ reduced_byLineID_list = reduced_byLineID_rdd.collect()
 for element in reduced_byLineID_list:
     if element[0] == 747:
         within_lineID_rdd = sc.parallelize(element[1])
-        within_lineID_keyVJID_rdd = within_lineID_rdd.map(lambda x: (x[1], [(x[0], x[1], x[2], x[3], x[4], \
-                                                                             x[5], x[6], x[7], x[8])]))
-        reduced_byVJID_rdd = within_lineID_keyVJID_rdd.reduceByKey(lambda a, b: a + b)
-        reduced_byVJID_list = reduced_byVJID_rdd.collect()
+        within_lineID_keyJPID_rdd = within_lineID_rdd.map(lambda x: (x[2], [(x[0], x[1], x[2], x[3], x[4], \
+                                                                             x[5], x[6], x[7], x[8], x[9])]))
+        reduced_byJPID_rdd = within_lineID_keyJPID_rdd.reduceByKey(lambda a, b: a + b)
+        reduced_byJPID_list = reduced_byJPID_rdd.collect()
 
-        # Iterating over each LineID's separate VehicleJourneyID
-        for element_2 in reduced_byVJID_list:
-            if element_2[0] == 3493:
-                within_VJID_rdd = sc.parallelize(element_2[1])
-                within_VJID_keyStopID_rdd = within_VJID_rdd.map(lambda x: (x[2], [(x[0], x[1], x[2], x[3], x[4], \
-                                                                            x[5], x[6], x[7], x[8])]))
-                reduced_byStopID_rdd = within_VJID_keyStopID_rdd.reduceByKey(lambda a, b: a + b)
-                reduced_byStopID_list = reduced_byStopID_rdd.collect()
+        # Iterating over each LineID's separate JourneyPatternID
+        for element_2 in reduced_byJPID_list:
+            if element_2[0] == '7470001':
+                within_JPID_rdd = sc.parallelize(element_2[1])
+                within_JPID_keyVJID_rdd = within_JPID_rdd.map(lambda x: (x[3], [(x[0], x[1], x[2], x[3], x[4], \
+                                                                            x[5], x[6], x[7], x[8], x[9])]))
+                reduced_byVJID_rdd = within_JPID_keyVJID_rdd.reduceByKey(lambda a, b: a + b)
+                reduced_byVJID_list = reduced_byVJID_rdd.collect()
 
-                # Iterating over each LineID's separate VehicleJourneyID's separate StopID
-                for element_3 in reduced_byStopID_list:
+                # Iterating over each LineID's separate JourneyPatternID's separate VehicleJourneyID
+                for element_3 in reduced_byVJID_list:
                     # if element_3[0] == 3665:
                     within_StopID_rdd = sc.parallelize(element_3[1])
-                    within_StopID_keyTimestamp_rdd = within_StopID_rdd.map(lambda x: (x[3], (x[0], x[1], x[2], \
+                    within_StopID_keyTimestamp_rdd = within_StopID_rdd.map(lambda x: (x[1], (x[0], x[1], x[2], \
                                                                                               x[3], x[4], x[5], \
-                                                                                              x[6], x[7], x[8])))
+                                                                                              x[6], x[7], x[8], x[9])))
                     sorted_byTimestamp_rdd = within_StopID_keyTimestamp_rdd.sortByKey().values()
-                    sorted_byTimestamp_df = sorted_byTimestamp_rdd.toDF(schema = ["LineID", "VehicleJourneyID", \
-                                                                                       "StopID", "Timestamp", \
-                                                                                       "VehicleID", "Lat", "Lon", \
-                                                                                       "AtStop", "Delay"])
-                    # sorted_byTimestamp_df.show()
+                    sorted_byTimestamp_df = sorted_byTimestamp_rdd.toDF(schema = ["LineID", "Timestamp", \
+                                                                                  "JourneyPatternID", \
+                                                                                  "VehicleJourneyID", \
+                                                                                  "VehicleID", "StopID", "Lat", "Lon", \
+                                                                                  "AtStop", "Delay"])
                     sorted_byTimestamp_df.registerTempTable("records")
-                    filtered_df = sqc.sql("select LineID, VehicleJourneyID, StopID, Timestamp, AtStop, Delay \
-                     from records where AtStop = 1")
-                    # The above filtered df now consists of the records when a bus running on a particular line
-                    # within a vehicle journey id has reached and stayed at a stop
+                    filtered_df = sqc.sql("select * from records where AtStop = 1")
+                    filtered_df.show(100, False)
 
