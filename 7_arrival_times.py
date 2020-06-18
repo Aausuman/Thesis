@@ -15,20 +15,15 @@ sqc = SQLContext(sc)
 # sqc = SQLContext(sc)
 
 # Importing Dataset (Local machine)
-raw_records_1 = sc.textFile("/Users/aausuman/Downloads/Thesis Dataset/siri.20130101.csv")
-raw_records_2 = sc.textFile("/Users/aausuman/Downloads/Thesis Dataset/siri.20130109.csv")
-raw_records = raw_records_1.union(raw_records_2)
+raw_records = sc.textFile("/Users/aausuman/Documents/Thesis/Dataset-Day1/siri.20130101.csv")
 
 # Importing Dataset (Databricks cluster)
-# raw_records = sc.textFile("/FileStore/tables/siri_20130101-aa346.csv")
-# Template for reading and concatenating the entire month's data
-# folder_path = "/Users/aausuman/Downloads/Thesis Dataset/"
-# files = os.listdir(folder_path)
+# files_list = dbutils.fs.ls("/FileStore/tables/")
 # raw_records = sc.emptyRDD()
-# for file in files:
-#     if file != '.DS_Store':
-#         records = sc.textFile(folder_path + file)
-#         raw_records = raw_records.union(records)
+#
+# for element in files_list:
+#     records = sc.textFile(element.path)
+#     raw_records = raw_records.union(records)
 
 # Function to extract fields from our comma separated data files
 def pre_process(record):
