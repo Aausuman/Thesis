@@ -15,7 +15,9 @@ sqc = SQLContext(sc)
 # sqc = SQLContext(sc)
 
 # Importing Dataset (Local machine)
-raw_records = sc.textFile("/Users/aausuman/Downloads/Thesis Dataset/siri.20130101.csv")
+raw_records_1 = sc.textFile("/Users/aausuman/Downloads/Thesis Dataset/siri.20130101.csv")
+raw_records_2 = sc.textFile("/Users/aausuman/Downloads/Thesis Dataset/siri.20130109.csv")
+raw_records = raw_records_1.union(raw_records_2)
 
 # Importing Dataset (Databricks cluster)
 # raw_records = sc.textFile("/FileStore/tables/siri_20130101-aa346.csv")
@@ -109,7 +111,7 @@ for element in reduced_byLineID_list:
                                                                                           "AtStop", "Delay"])
                             sorted_byTimestamp_df.registerTempTable("records")
                             filtered_df = sqc.sql("select * from records where AtStop = 1")
-                            filtered_df.show()
+                            filtered_df.show(100, False)
                             # This will give us properly structured dfs in each loop
                             # Each one will contain records of a Stop ID, within a VJID, within a JPID, within a LineID
                             # only records when the AtStop value is equal to 1
