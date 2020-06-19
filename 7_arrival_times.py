@@ -67,8 +67,7 @@ for element in reduced_byLineID_list:
         within_lineID_rdd = sc.parallelize(element[1])
         within_lineID_keyJPID_rdd = within_lineID_rdd.map(lambda x: (x[2], [(x[0], x[1], x[2], x[3], x[4], \
                                                                              x[5], x[6], x[7], x[8], x[9])]))
-        reduced_byJPID_rdd = within_lineID_keyJPID_rdd.reduceByKey(lambda a, b: a + b)
-        reduced_byJPID_list = reduced_byJPID_rdd.collect()
+        reduced_byJPID_list = within_lineID_keyJPID_rdd.reduceByKey(lambda a, b: a + b).collect()
 
         # Iterating by LineID's separate JourneyPatternID
         for element_2 in reduced_byJPID_list:
@@ -76,8 +75,7 @@ for element in reduced_byLineID_list:
                 within_JPID_rdd = sc.parallelize(element_2[1])
                 within_JPID_keyVJID_rdd = within_JPID_rdd.map(lambda x: (x[3], [(x[0], x[1], x[2], x[3], x[4], \
                                                                             x[5], x[6], x[7], x[8], x[9])]))
-                reduced_byVJID_rdd = within_JPID_keyVJID_rdd.reduceByKey(lambda a, b: a + b)
-                reduced_byVJID_list = reduced_byVJID_rdd.collect()
+                reduced_byVJID_list = within_JPID_keyVJID_rdd.reduceByKey(lambda a, b: a + b).collect()
 
                 # Iterating by LineID's separate JourneyPatternID's separate VehicleJourneyID
                 for element_3 in reduced_byVJID_list:
@@ -86,8 +84,7 @@ for element in reduced_byLineID_list:
                         within_VJID_keyStopID_rdd = within_VJID_rdd.map(lambda x: (x[4], [(x[0], x[1], x[2], x[3], \
                                                                                            x[4], x[5], x[6], x[7], \
                                                                                            x[8], x[9])]))
-                        reduced_byStopID_rdd = within_VJID_keyStopID_rdd.reduceByKey(lambda a, b: a + b)
-                        reduced_byStopID_list = reduced_byStopID_rdd.collect()
+                        reduced_byStopID_list = within_VJID_keyStopID_rdd.reduceByKey(lambda a, b: a + b).collect()
 
                         # Iterating by LineID's separate JourneyPatternID's separate VehicleJourneyID's separate StopID
                         for element_4 in reduced_byStopID_list:
