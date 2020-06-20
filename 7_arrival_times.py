@@ -5,7 +5,7 @@ import time as t
 import os
 
 # Initialising the Spark environment (Local machine)
-conf = SparkConf().setMaster("local[*]").setAppName("Stop_Locations")
+conf = SparkConf().setMaster("local[*]").setAppName("Arrival_Times")
 sc = SparkContext(conf=conf)
 sqc = SQLContext(sc)
 
