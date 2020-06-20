@@ -15,10 +15,12 @@ sqc = SQLContext(sc)
 # sqc = SQLContext(sc)
 
 # Importing Dataset (Local machine)
-raw_records = sc.textFile("/Users/aausuman/Documents/Thesis/Dataset-Day1/siri.20130101.csv")
+data_path = "/Users/aausuman/Documents/Thesis/Dataset-Day1/siri.20130101.csv"
+raw_records = sc.textFile(data_path)
 
 # Importing Dataset (Databricks cluster)
-# files_list = dbutils.fs.ls("/FileStore/tables/")
+# data_path = "/FileStore/tables/"
+# files_list = dbutils.fs.ls(data_path)
 # raw_records = sc.emptyRDD()
 #
 # for element in files_list:
@@ -39,11 +41,19 @@ def cleaning(df):
     return df
 
 # Function to get the average of a column's values
-def average_delay(df, column):
+def average_of_column(df, column):
     total = df.select(F.sum(column)).collect()[0][0]
-    no_of_records = within_lineID_rdd.count()
+    no_of_records = df.count()
     average = total/no_of_records
     return average
+
+# Function to extract data-set's daily day and date
+def date_and_day(df):
+    first_timestamp = int(float(df.collect()[0]["Timestamp"]))/1000000
+    readable_first_timestamp = t.ctime(first_timestamp)
+    day = readable_first_timestamp[0:3]
+    date = readable_first_timestamp[4:10]
+    return day, date
 
 
 # Importing and cleaning our data-set
@@ -67,6 +77,7 @@ for element in reduced_byLineID_list:
     if element[0] == 747:
         within_lineID_rdd = sc.parallelize(element[1])
         within_lineID_df = within_lineID_rdd.toDF(schema =["LineID", "Timestamp", "Delay"])
-        average_delay_for_day = average_delay(within_lineID_df, 'Delay')
-        print(str(average_delay_for_day) + " is the average delay for line ID = " + str(element[0]) + \
-              "on date = " + )
+        average_delay_for_day = average_of_column(within_lineID_df, 'Delay')
+        day, date = date_and_day(within_lineID_df)
+        print(str(average_delay_for_day) + " seconds is the average delay for line ID = " + str(element[0]) + \
+              " on date = " + date + " and day = " + day)
