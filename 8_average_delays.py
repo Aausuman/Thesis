@@ -8,17 +8,12 @@ import time as t
 conf = SparkConf().setMaster("local[*]").setAppName("Average_Delays")
 sc = SparkContext(conf=conf)
 sqc = SQLContext(sc)
+raw_records = sc.textFile("/Users/aausuman/Documents/Thesis/Dataset-Day1/siri.20130101.csv")
 
 # Initialising the Spark environment (Databricks cluster)
 # conf = SparkConf()
 # sc = SparkContext.getOrCreate(conf = conf)
 # sqc = SQLContext(sc)
-
-# Importing Dataset (Local machine)
-data_path = "/Users/aausuman/Documents/Thesis/Dataset-Day1/siri.20130101.csv"
-raw_records = sc.textFile(data_path)
-
-# Importing Dataset (Databricks cluster)
 # data_path = "/FileStore/tables/"
 # files_list = dbutils.fs.ls(data_path)
 # raw_records = sc.emptyRDD()
@@ -56,6 +51,12 @@ def date_and_day(df):
     return day, date
 
 
+# Creating an empty data-frame for storing average delay values of all lineIDs
+relevant_fields = [StructField("LineID",IntegerType(), True),StructField("Average Delay", IntegerType(), True),\
+            StructField("Date", StringType(), True), StructField("Day", StringType(), True)]
+schema = StructType(relevant_fields)
+average_delay_df = sqc.createDataFrame(sc.emptyRDD(), schema)
+
 # Importing and cleaning our data-set
 records_rdd = raw_records.map(pre_process)
 records_df = records_rdd.toDF(schema=["Timestamp", "LineID", "Direction", "JourneyPatternID", "Timeframe", \
@@ -63,21 +64,25 @@ records_df = records_rdd.toDF(schema=["Timestamp", "LineID", "Direction", "Journ
                                       "BlockID", "VehicleID", "StopID", "AtStop"])
 records_df = cleaning(records_df)
 
+# Getting day and date for this set of records
+day, date = date_and_day(records_df)
+
 # Remapping rdd as a PairRDD with LineID as key
 records_keyLineID_rdd = records_df.rdd.map(lambda x: (int(str(x["LineID"])), [(int(str(x["LineID"])), \
                                                                                int(float(str(x["Timestamp"]))), \
                                                                                int(str(x["Delay"])))]))
 
 # Reducing (grouping) by the LineID
-reduced_byLineID_rdd = records_keyLineID_rdd.reduceByKey(lambda a, b: a + b)
-reduced_byLineID_list = reduced_byLineID_rdd.collect()
+reduced_byLineID_list = records_keyLineID_rdd.reduceByKey(lambda a, b: a + b).collect()
 
 # Iterating by LineID
 for element in reduced_byLineID_list:
-    if element[0] == 747:
-        within_lineID_rdd = sc.parallelize(element[1])
-        within_lineID_df = within_lineID_rdd.toDF(schema =["LineID", "Timestamp", "Delay"])
-        average_delay_for_day = average_of_column(within_lineID_df, 'Delay')
-        day, date = date_and_day(within_lineID_df)
-        print(str(average_delay_for_day) + " seconds is the average delay for line ID = " + str(element[0]) + \
-              " on date = " + date + " and day = " + day)
+    within_lineID_df = sc.parallelize(element[1]).toDF(schema =["LineID", "Timestamp", "Delay"])
+    average_delay_for_day = average_of_column(within_lineID_df, 'Delay')
+    this_lineID_row = sc.parallelize([(element[0], average_delay_for_day, date, day)]).toDF(schema = ["LineID", \
+                                                                                                      "Average Delay", \
+                                                                                                      "Date", "Day"])
+    average_delay_df = average_delay_df.union(this_lineID_row)
+
+# Saving the average delays in a single csv file
+average_delay_df.coalesce(1).write.csv('/Users/aausuman/Documents/Thesis/Average_Delays')
