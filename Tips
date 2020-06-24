@@ -4,4 +4,4 @@
 2. To download a file from DataBricks FileStore open the following url in browser
         https://community.cloud.databricks.com/files/<folder>/<file.txt>?o=8736540974339418
 
-        replace <folder> with folder name and <file.txt> with file name
+        replace <folder> with folder name (within FileStore) and <file.txt> with file name
