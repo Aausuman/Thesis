@@ -4,23 +4,11 @@ from pyspark.sql.types import *
 from pyspark.sql import functions as F
 import time as t
 
-# Initialising the Spark environment (Local machine)
+# Initialising the Spark environment
 conf = SparkConf().setMaster("local[*]").setAppName("Average_Delays")
 sc = SparkContext(conf=conf)
 sqc = SQLContext(sc)
 raw_records = sc.textFile("/Users/aausuman/Documents/Thesis/Dataset-Day1/siri.20130101.csv")
-
-# Initialising the Spark environment (Databricks cluster)
-# conf = SparkConf()
-# sc = SparkContext.getOrCreate(conf = conf)
-# sqc = SQLContext(sc)
-# data_path = "/FileStore/tables/"
-# files_list = dbutils.fs.ls(data_path)
-# raw_records = sc.emptyRDD()
-#
-# for element in files_list:
-#     records = sc.textFile(element.path)
-#     raw_records = raw_records.union(records)
 
 # Function to extract fields from our comma separated data files
 def pre_process(record):
