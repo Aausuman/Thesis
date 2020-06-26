@@ -4,13 +4,7 @@ from pyspark.sql.types import *
 from pyspark.sql import functions as F
 import time as t
 
-# Initialising the Spark environment (Local machine)
-# conf = SparkConf().setMaster("local[*]").setAppName("Average_Delays")
-# sc = SparkContext(conf=conf)
-# sqc = SQLContext(sc)
-# raw_records = sc.textFile("/Users/aausuman/Documents/Thesis/Dataset-Day1/siri.20130101.csv")
-
-# Initialising the Spark environment (Databricks cluster)
+# Initialising the Spark environment
 conf = SparkConf()
 sc = SparkContext.getOrCreate(conf = conf)
 sqc = SQLContext(sc)
@@ -82,9 +76,6 @@ for element in files_list[:8]:
                                                                                                           "Average Delay", \
                                                                                                           "Date", "Day"])
         average_delay_df = average_delay_df.union(this_lineID_row)
-
-# Saving the average delays in a single csv file (Local Machine)
-# average_delay_df.coalesce(1).write.csv('/Users/aausuman/Documents/Thesis/Average_Delays')
 
 # Saving the average delays in a single csv file (Databricks cluster)
 average_delay_df.coalesce(1).write.csv('/FileStore/Average_Delays')
