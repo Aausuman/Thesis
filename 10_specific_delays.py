@@ -1,6 +1,8 @@
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext
 from pyspark.sql.types import *
+from pyspark.sql import functions as F
+import time as t
 
 # Initialising the Spark environment
 conf = SparkConf().setMaster("local[*]").setAppName("Specific_Delays")
@@ -28,16 +30,22 @@ def average_of_column(df, column):
     average = total/no_of_records
     return average
 
+# Function to extract data-set's daily day and date
+def date_and_day(df):
+    first_timestamp = int(float(df.collect()[0]["Timestamp"]))/1000000
+    readable_first_timestamp = t.ctime(first_timestamp)
+    day = readable_first_timestamp[0:3]
+    date = readable_first_timestamp[4:10]
+    return day, date
+
 
 # Creating an empty data-frame for storing delay values stop wise of all lineIDs
 relevant_fields = [StructField("LineID",IntegerType(), True), \
-                   StructField("JourneyPatternID", StringType(), True), \
-                   StructField("BlockID", StringType(), True), \
-                   StructField("VehicleJourneyID", IntegerType(), True), \
                    StructField("StopID", IntegerType(), True), \
-                   StructField("Delay", IntegerType(), True), \
-                   StructField("Timestamp", IntegerType(), True), \
-                   StructField("AtStop", IntegerType(), True)]
+                   StructField("Average Reaching Delay", IntegerType(), True), \
+                   StructField("Date", StringType(), True), \
+                   StructField("Day", StringType(), True), \
+                   ]
 schema = StructType(relevant_fields)
 stop_wise_delay_df = sqc.createDataFrame(sc.emptyRDD(), schema)
 
@@ -48,11 +56,11 @@ records_df = records_rdd.toDF(schema=["Timestamp", "LineID", "Direction", "Journ
                                       "BlockID", "VehicleID", "StopID", "AtStop"])
 records_df = cleaning(records_df)
 
+# Getting day and date for this set of records
+day, date = date_and_day(records_df)
+
 # Remapping rdd as a PairRDD with LineID as key
 records_keyLineID_rdd = records_df.rdd.map(lambda x: (int(str(x["LineID"])), [(int(str(x["LineID"])), \
-                                                                               str(x["JourneyPatternID"]), \
-                                                                               str(x["BlockID"]), \
-                                                                               int(str(x["VehicleJourneyID"])), \
                                                                                int(str(x["StopID"])), \
                                                                                int(float(str(x["Timestamp"]))), \
                                                                                int(str(x["AtStop"])), \
@@ -62,39 +70,32 @@ records_keyLineID_rdd = records_df.rdd.map(lambda x: (int(str(x["LineID"])), [(i
 reduced_byLineID_list = records_keyLineID_rdd.reduceByKey(lambda a, b: a + b).collect()
 
 # Iterating by LineID
-for i in reduced_byLineID_list:
-    if i[0] == 747:
-        within_lineID_rdd = sc.parallelize(i[1])
-        records_keyJPID_rdd = within_lineID_rdd.map(lambda x: (x[1], [(x[0], x[1], x[2], x[3], x[4], x[5], x[6], \
-                                                                       x[7])]))
-        reduced_byJPID_list = records_keyJPID_rdd.reduceByKey(lambda a, b: a + b).collect()
-        for j in reduced_byJPID_list:
-            within_JPID_rdd = sc.parallelize(j[1])
-            records_keyBID_rdd = within_JPID_rdd.map(lambda x: (x[2], [(x[0], x[1], x[2], x[3], x[4], x[5], x[6], \
-                                                                        x[7])]))
-            reduced_byBID_list = records_keyBID_rdd.reduceByKey(lambda a, b: a + b).collect()
-            for k in reduced_byBID_list:
-                within_BID_rdd = sc.parallelize(k[1])
-                records_keyVJID_rdd = within_BID_rdd.map(lambda x: (x[3], [(x[0], x[1], x[2], x[3], x[4], x[5], \
-                                                                            x[6], x[7])]))
-                reduced_byVJID_list = records_keyVJID_rdd.reduceByKey(lambda a, b: a + b).collect()
-                for l in reduced_byVJID_list:
-                    within_VJID_rdd = sc.parallelize(l[1])
-                    records_keyStopID_rdd = within_VJID_rdd.map(lambda x: (x[4], [(x[0], x[1], x[2], x[3], x[4], \
-                                                                                   x[5], x[6], x[7])]))
-                    reduced_byStopID_list = records_keyStopID_rdd.reduceByKey(lambda a, b: a + b).collect()
-                    for m in reduced_byStopID_list:
-                        within_StopID_rdd = sc.parallelize(m[1])
-                        records_keyTimestamp_rdd = within_StopID_rdd.map(lambda x: (x[5], (x[0], x[1], x[2], x[3], \
-                                                                                           x[4], x[5], x[6], x[7])))
-                        sorted_byTimestamp_rdd = records_keyTimestamp_rdd.sortByKey().values()
-                        sorted_byTimestamp_df = sorted_byTimestamp_rdd.toDF(schema=["LineID", "JourneyPatternID", \
-                                                                                    "BlockID", "VehicleJourneyID", \
-                                                                                    "StopID", "Timestamp", \
-                                                                                    "AtStop", "Delay"])
-                        sorted_byTimestamp_df.registerTempTable("records")
-                        filtered_df = sqc.sql("select * from records where AtStop = 1 limit 1")
-                        stop_wise_delay_df = stop_wise_delay_df.union(filtered_df)
+for lineID in reduced_byLineID_list:
+    within_lineID_rdd = sc.parallelize(lineID[1])
+    records_keyStopID_rdd = within_lineID_rdd.map(lambda x: (x[1], [(x[0], x[1], x[2], x[3], x[4])]))
+    reduced_byStopID_list = records_keyStopID_rdd.reduceByKey(lambda a, b: a + b).collect()
+    for stopID in reduced_byStopID_list:
+        within_StopID_rdd = sc.parallelize(stopID[1])
+        within_StopID_df = within_StopID_rdd.toDF(schema=["LineID", "StopID", "Timestamp", "AtStop", "Delay"])
+        within_StopID_df.registerTempTable("records")
+        filtered_df = sqc.sql("with temp as"
+                              "("
+                              "select row_number()over(order by Timestamp ASC) as row, *"
+                              "from records"
+                              ") "
+                              "select t2.LineID, t2.StopID, t2.Timestamp, t2.AtStop, t2.Delay "
+                              "from temp t1 "
+                              "INNER JOIN temp t2 "
+                              "ON t1.row = t2.row+1 "
+                              "where t2.AtStop = 1 and t1.AtStop = 0")
+        if len(filtered_df.head(1)) > 0:
+            average_reaching_delay = average_of_column(filtered_df, 'Delay')
+            this_lineID_row = sc.parallelize([(lineID[0], stopID[0], average_reaching_delay, date, day)]).toDF(schema=["LineID", \
+                                                                                             "StopID", \
+                                                                                             "Average Reaching Delay", \
+                                                                                             "Date",
+                                                                                             "Day"])
+            stop_wise_delay_df = stop_wise_delay_df.union(this_lineID_row)
 
 #  Saving the specific delays in a single csv file
 stop_wise_delay_df.coalesce(1).write.csv('/Users/aausuman/Documents/Thesis/Specific_Delays')
