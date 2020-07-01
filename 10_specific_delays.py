@@ -71,31 +71,32 @@ reduced_byLineID_list = records_keyLineID_rdd.reduceByKey(lambda a, b: a + b).co
 
 # Iterating by LineID
 for lineID in reduced_byLineID_list:
-    within_lineID_rdd = sc.parallelize(lineID[1])
-    records_keyStopID_rdd = within_lineID_rdd.map(lambda x: (x[1], [(x[0], x[1], x[2], x[3], x[4])]))
-    reduced_byStopID_list = records_keyStopID_rdd.reduceByKey(lambda a, b: a + b).collect()
-    for stopID in reduced_byStopID_list:
-        within_StopID_rdd = sc.parallelize(stopID[1])
-        within_StopID_df = within_StopID_rdd.toDF(schema=["LineID", "StopID", "Timestamp", "AtStop", "Delay"])
-        within_StopID_df.registerTempTable("records")
-        filtered_df = sqc.sql("with temp as"
-                              "("
-                              "select row_number()over(order by Timestamp ASC) as row, *"
-                              "from records"
-                              ") "
-                              "select t2.LineID, t2.StopID, t2.Timestamp, t2.AtStop, t2.Delay "
-                              "from temp t1 "
-                              "INNER JOIN temp t2 "
-                              "ON t1.row = t2.row+1 "
-                              "where t2.AtStop = 1 and t1.AtStop = 0")
-        if len(filtered_df.head(1)) > 0:
-            average_reaching_delay = average_of_column(filtered_df, 'Delay')
-            this_lineID_row = sc.parallelize([(lineID[0], stopID[0], average_reaching_delay, date, day)]).toDF(schema=["LineID", \
-                                                                                             "StopID", \
-                                                                                             "Average Reaching Delay", \
-                                                                                             "Date",
-                                                                                             "Day"])
-            stop_wise_delay_df = stop_wise_delay_df.union(this_lineID_row)
+    if lineID[0] == 747:
+        within_lineID_rdd = sc.parallelize(lineID[1])
+        records_keyStopID_rdd = within_lineID_rdd.map(lambda x: (x[1], [(x[0], x[1], x[2], x[3], x[4])]))
+        reduced_byStopID_list = records_keyStopID_rdd.reduceByKey(lambda a, b: a + b).collect()
+        for stopID in reduced_byStopID_list:
+            within_StopID_rdd = sc.parallelize(stopID[1])
+            within_StopID_df = within_StopID_rdd.toDF(schema=["LineID", "StopID", "Timestamp", "AtStop", "Delay"])
+            within_StopID_df.registerTempTable("records")
+            filtered_df = sqc.sql("with temp as"
+                                  "("
+                                  "select row_number()over(order by Timestamp ASC) as row, *"
+                                  "from records"
+                                  ") "
+                                  "select t2.LineID, t2.StopID, t2.Timestamp, t2.AtStop, t2.Delay "
+                                  "from temp t1 "
+                                  "INNER JOIN temp t2 "
+                                  "ON t1.row = t2.row+1 "
+                                  "where t2.AtStop = 1 and t1.AtStop = 0")
+            if len(filtered_df.head(1)) > 0:
+                average_reaching_delay = average_of_column(filtered_df, 'Delay')
+                this_lineID_row = sc.parallelize([(lineID[0], stopID[0], average_reaching_delay, date, day)]).toDF(schema=["LineID", \
+                                                                                                 "StopID", \
+                                                                                                 "Average Reaching Delay", \
+                                                                                                 "Date",
+                                                                                                 "Day"])
+                stop_wise_delay_df = stop_wise_delay_df.union(this_lineID_row)
 
 #  Saving the specific delays in a single csv file
 stop_wise_delay_df.coalesce(1).write.csv('/Users/aausuman/Documents/Thesis/Specific_Delays')

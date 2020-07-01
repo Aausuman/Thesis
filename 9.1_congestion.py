@@ -32,6 +32,15 @@ def date_and_day(df):
     return day, date
 
 
+# Creating an empty data-frame for storing busy lines data
+relevant_fields = [StructField("LineID",IntegerType(), True), \
+                   StructField("Congestion", IntegerType(), True), \
+                   StructField("Date",StringType(), True), \
+                   StructField("Day", StringType(), True), \
+                   ]
+schema = StructType(relevant_fields)
+congestion_times_df = sqc.createDataFrame(sc.emptyRDD(), schema)
+
 # Importing and cleaning our data-set
 records_rdd = raw_records.map(pre_process)
 records_df = records_rdd.toDF(schema=["Timestamp", "LineID", "Direction", "JourneyPatternID", "Timeframe", \
