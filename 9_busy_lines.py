@@ -32,7 +32,7 @@ def date_and_day(df):
     return day, date
 
 
-# Creating an empty data-frame for storing delay values stop wise of all lineIDs
+# Creating an empty data-frame for storing busy lines data
 relevant_fields = [StructField("LineID",IntegerType(), True), \
                    StructField("Number of times at stops", IntegerType(), True), \
                    StructField("Date",StringType(), True), \
