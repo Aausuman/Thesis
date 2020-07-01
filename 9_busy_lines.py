@@ -23,6 +23,23 @@ def cleaning(df):
     df = df.dropDuplicates()
     return df
 
+# Function to extract data-set's daily day and date
+def date_and_day(df):
+    first_timestamp = int(float(df.collect()[0]["Timestamp"]))/1000000
+    readable_first_timestamp = t.ctime(first_timestamp)
+    day = readable_first_timestamp[0:3]
+    date = readable_first_timestamp[4:10]
+    return day, date
+
+
+# Creating an empty data-frame for storing delay values stop wise of all lineIDs
+relevant_fields = [StructField("LineID",IntegerType(), True), \
+                   StructField("Number of times at stops", IntegerType(), True), \
+                   StructField("Date",StringType(), True), \
+                   StructField("Day", StringType(), True), \
+                   ]
+schema = StructType(relevant_fields)
+busy_lines_df = sqc.createDataFrame(sc.emptyRDD(), schema)
 
 # Importing and cleaning our data-set
 records_rdd = raw_records.map(pre_process)
@@ -30,6 +47,9 @@ records_df = records_rdd.toDF(schema=["Timestamp", "LineID", "Direction", "Journ
                                       "VehicleJourneyID", "Operator", "Congestion", "Lon", "Lat", "Delay", \
                                       "BlockID", "VehicleID", "StopID", "AtStop"])
 records_df = cleaning(records_df)
+
+# Getting day and date for this set of records
+day, date = date_and_day(records_df)
 
 # Remapping rdd as a PairRDD with LineID as key
 records_keyLineID_rdd = records_df.rdd.map(lambda x: (int(str(x["LineID"])), [(int(str(x["LineID"])), \
@@ -41,3 +61,31 @@ records_keyLineID_rdd = records_df.rdd.map(lambda x: (int(str(x["LineID"])), [(i
 # Reducing (grouping) by the LineID
 reduced_byLineID_list = records_keyLineID_rdd.reduceByKey(lambda a, b: a + b).collect()
 
+# Iterating by LineID
+for lineID in reduced_byLineID_list:
+    stop_count = 0
+    within_lineID_rdd = sc.parallelize(lineID[1])
+    records_keyStopID_rdd = within_lineID_rdd.map(lambda x: (x[1], [(x[0], x[1], x[2], x[3], x[4])]))
+    reduced_byStopID_list = records_keyStopID_rdd.reduceByKey(lambda a, b: a + b).collect()
+    for stopID in reduced_byStopID_list:
+        within_StopID_rdd = sc.parallelize(stopID[1])
+        within_StopID_df = within_StopID_rdd.toDF(schema=["LineID", "StopID", "Timestamp", "AtStop", "Delay"])
+        within_StopID_df.registerTempTable("records")
+        filtered_df = sqc.sql("with temp as"
+                              "("
+                              "select row_number()over(order by Timestamp ASC) as row, *"
+                              "from records"
+                              ") "
+                              "select t2.Delay "
+                              "from temp t1 "
+                              "INNER JOIN temp t2 "
+                              "ON t1.row = t2.row+1 "
+                              "where t2.AtStop = 1 and t1.AtStop = 0")
+        stop_count = stop_count + filtered_df.count()
+    this_lineID_row = sc.parallelize([(lineID[0], stop_count, date, day)]).toDF(schema=["LineID", \
+                                                                                        "Numbers of times at stops", \
+                                                                                        "Date", "Day"])
+    busy_lines_df = busy_lines_df.union(this_lineID_row)
+
+# Saving the specific delays in a single csv file
+busy_lines_df.coalesce(1).write.csv('/Users/aausuman/Documents/Thesis/Busy_Lines')
