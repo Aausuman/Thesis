@@ -11,10 +11,10 @@ sqc = SQLContext(sc)
 # sc = SparkContext.getOrCreate(conf = conf)
 # sqc = SQLContext(sc)
 
-initial_rdd = sc.textFile("/Users/aausuman/Downloads/Thesis Dataset/siri.20130101.csv")
+initial_rdd = sc.textFile("/Users/aausuman/Documents/Thesis/Dataset-Day1/siri.20130101.csv")
 count_1 = initial_rdd.count()
 
-initial_df = sqc.read.csv("/Users/aausuman/Downloads/Thesis Dataset/siri.20130101.csv")
+initial_df = sqc.read.csv("/Users/aausuman/Documents/Thesis/Dataset-Day1/siri.20130101.csv")
 count_2 = initial_df.count()
 
 print("Number of records through RDD for Jan 1, 2013 = " + str(count_1))
