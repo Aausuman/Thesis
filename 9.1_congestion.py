@@ -1,7 +1,7 @@
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext
 from pyspark.sql.types import *
-from pyspark.sql import functions as F
+from pyspark.sql.functions import lit
 import time as t
 
 # Initialising the Spark environment
@@ -10,10 +10,12 @@ sc = SparkContext(conf=conf)
 sqc = SQLContext(sc)
 raw_records = sc.textFile("/Users/aausuman/Documents/Thesis/Dataset-Day1/siri.20130101.csv")
 
+
 # Function to extract fields from our comma separated data files
 def pre_process(record):
     fields = record.split(",")
     return fields
+
 
 # Function to remove records with null values and duplicate records
 def cleaning(df):
@@ -22,6 +24,7 @@ def cleaning(df):
     df = df.filter(expr)
     df = df.dropDuplicates()
     return df
+
 
 # Function to extract data-set's daily day and date
 def date_and_day(df):
@@ -66,8 +69,11 @@ for lineID in reduced_byLineID_list:
         within_lineID_rdd = sc.parallelize(lineID[1])
         within_lineID_df = within_lineID_rdd.toDF(schema=["LineID", "Congestion", "Timestamp", "AtStop"])
         within_lineID_df.registerTempTable("records")
-        filtered_df = sqc.sql("select Timestamp from records where Congestion = 1 and AtStop = 0 "
+        filtered_df = sqc.sql("select MIN(LineID) as LineID, Timestamp from records where Congestion = 1 and AtStop = 0"
                               "group by Timestamp order by Timestamp")
-        filtered_df.show()
-        print(filtered_df.count())
+        filtered_df = filtered_df.withColumn("Date", lit(date))
+        filtered_df = filtered_df.withColumn("Day", lit(day))
+        congestion_times_df = congestion_times_df.union(filtered_df)
+
+
 
