@@ -75,5 +75,6 @@ for lineID in reduced_byLineID_list:
         filtered_df = filtered_df.withColumn("Day", lit(day))
         congestion_times_df = congestion_times_df.union(filtered_df)
 
-
+#  Saving the congestion timings in a single csv file
+congestion_times_df.coalesce(1).write.csv('/Users/aausuman/Documents/Thesis/Congestions')
 
