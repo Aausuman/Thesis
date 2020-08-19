@@ -90,5 +90,5 @@ for lineID in reduced_byLineID_list:
                                                                                         "Date", "Day"])
     busy_lines_df = busy_lines_df.union(this_lineID_row)
 
-# Saving the specific delays in a single csv file
+# Saving the busy lines in a single csv file
 busy_lines_df.coalesce(1).write.csv('/Users/aausuman/Documents/Thesis/Busy_Lines')
