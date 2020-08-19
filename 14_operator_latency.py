@@ -39,6 +39,6 @@ records_df = records_df.withColumn("Delay", records_df["Delay"].cast(DoubleType(
 operator_latency_df = records_df.groupBy("Operator").avg("Delay")
 
 #  Saving the operator influence in a single csv file
-operator_latency_df.coalesce(1).write.csv('/Users/aausuman/Documents/Thesis/Operator_Influence')
+operator_latency_df.coalesce(1).write.csv('/Users/aausuman/Documents/Thesis/Operator_Latency')
 
 
