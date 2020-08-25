@@ -26,7 +26,7 @@ mapped_records_rdd = records_df.rdd.map(lambda x: (int(x["LineID"]), [(int(x["Li
 reduced_byLineID_list = mapped_records_rdd.reduceByKey(lambda a, b: a + b).collect()
 
 for lineID in reduced_byLineID_list:
-    if lineID[0] == 151:
+    if lineID[0] == 747:
         x_axis = [day[2] for day in lineID[1]]
         y_axis = [day[1] for day in lineID[1]]
         # print(y_axis)
