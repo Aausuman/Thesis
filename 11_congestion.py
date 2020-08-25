@@ -65,15 +65,14 @@ reduced_byLineID_list = records_keyLineID_rdd.reduceByKey(lambda a, b: a + b).co
 
 # Iterating by LineID
 for lineID in reduced_byLineID_list:
-    if lineID[0] == 747:
-        within_lineID_rdd = sc.parallelize(lineID[1])
-        within_lineID_df = within_lineID_rdd.toDF(schema=["LineID", "Congestion", "Timestamp", "AtStop"])
-        within_lineID_df.registerTempTable("records")
-        filtered_df = sqc.sql("select MIN(LineID) as LineID, Timestamp from records where Congestion = 1 and AtStop = 0"
-                              "group by Timestamp order by Timestamp")
-        filtered_df = filtered_df.withColumn("Date", lit(date))
-        filtered_df = filtered_df.withColumn("Day", lit(day))
-        congestion_times_df = congestion_times_df.union(filtered_df)
+    within_lineID_rdd = sc.parallelize(lineID[1])
+    within_lineID_df = within_lineID_rdd.toDF(schema=["LineID", "Congestion", "Timestamp", "AtStop"])
+    within_lineID_df.registerTempTable("records")
+    filtered_df = sqc.sql("select MIN(LineID) as LineID, Timestamp from records where Congestion = 1 and AtStop = 0 "
+                          "group by Timestamp order by Timestamp")
+    filtered_df = filtered_df.withColumn("Date", lit(date))
+    filtered_df = filtered_df.withColumn("Day", lit(day))
+    congestion_times_df = congestion_times_df.union(filtered_df)
 
 #  Saving the congestion timings in a single csv file
 congestion_times_df.coalesce(1).write.csv('/Users/aausuman/Documents/Thesis/Congestions')
