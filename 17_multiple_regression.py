@@ -2,8 +2,7 @@ import pandas as pd
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext
 from pyspark.sql.types import *
-from pyspark.sql import functions as F
-import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 import numpy as np
 from sklearn.linear_model import LinearRegression
 

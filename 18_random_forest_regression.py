@@ -1,13 +1,10 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score,mean_squared_error
-import seaborn as sns
+from sklearn.metrics import mean_squared_error
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext
 from pyspark.sql.types import *
-from pyspark.sql import functions as F
-import matplotlib.pyplot as plt
 import numpy as np
 
 # Initialising the Spark environment
